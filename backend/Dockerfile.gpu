@@ -1,0 +1,16 @@
+# GPU image for the real ViMo pipeline (fine-tuned IP2P STR predictor + LLM GUI-text predictor).
+#   docker build -f Dockerfile.gpu -t vimo-api-gpu .
+#   docker run --gpus all -p 8000:8000 \
+#     -v /path/to/checkpoints:/models -e VIMO_CHECKPOINT=/models/str-predictor \
+#     -e OPENAI_API_KEY=sk-... vimo-api-gpu
+FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-runtime
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends libglib2.0-0 libgomp1 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt requirements-gpu.txt ./
+RUN pip install -r requirements-gpu.txt
+COPY app ./app
+EXPOSE 8000
+# one worker: the diffusion model lives in GPU memory once
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

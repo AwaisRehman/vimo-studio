@@ -1,0 +1,7 @@
+# Real-model dependencies (torch comes from the CUDA base image in Dockerfile.gpu)
+-r requirements.txt
+diffusers>=0.30
+transformers>=4.44
+accelerate>=0.33
+safetensors
+openai>=1.40          # GPT-4o for prompts G.1–G.5 (or swap for your LLM client)

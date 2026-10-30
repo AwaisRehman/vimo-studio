@@ -1,0 +1,38 @@
+# Runs on every push / PR. Vercel and Render deploy on their own; this catches errors before they ship.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+      - run: npm run build          # tsc type-check + vite build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: backend/requirements.txt }
+      - run: pip install -r requirements.txt httpx
+      - name: Smoke test API
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app.main import app
+          c = TestClient(app)
+          assert c.get("/api/health").json()["status"] == "ok"
+          with open("../frontend/public/samples/clock.png", "rb") as f:
+              r = c.post("/api/predict", files={"image": f}, data={"action": "Click the + button"})
+          assert r.status_code == 200, r.text
+          print("ok:", len(r.json()["symbols"]), "symbols")
+          PY

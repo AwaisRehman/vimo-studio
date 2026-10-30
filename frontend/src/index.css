@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic tokens — components use bg-surface, text-fg, border-line … and get dark mode for free. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --surface-3: #e9ecf1;
+  --line: #e3e6ec;
+  --fg: #0e1420;
+  --muted: #566070;
+  --subtle: #8b94a3;
+  --bar-muted: #cfd5df;
+  --canvas: #eef0f4;
+  --dot: #d6dae2;
+  color-scheme: light;
+}
+.dark {
+  --bg: #0a0c10;
+  --surface: #11141a;
+  --surface-2: #171b23;
+  --surface-3: #1f242e;
+  --line: #252b36;
+  --fg: #e9ecf2;
+  --muted: #a0a8b6;
+  --subtle: #6c7584;
+  --bar-muted: #333b49;
+  --canvas: #0d1015;
+  --dot: #1e232c;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-canvas: var(--canvas);
+}
+
+@theme {
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #e0e4ff;
+  --color-brand-200: #c5ccff;
+  --color-brand-300: #a2abff;
+  --color-brand-400: #7f86fb;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #5048e5;
+  --color-brand-700: #4338ca;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-fade-in: fade-in 0.25s ease-out;
+  @keyframes shimmer { from { background-position: -400px 0 } to { background-position: 400px 0 } }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+}
+
+@layer base {
+  html { @apply bg-bg text-fg antialiased; font-feature-settings: "cv11", "ss01"; }
+  ::selection { @apply bg-brand-500/25; }
+  * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+}
+
+/* dotted canvas background used in Studio */
+.dot-grid {
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 800px 100%;
+  @apply animate-shimmer;
+}
