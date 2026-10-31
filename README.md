@@ -43,9 +43,9 @@ To use a backend somewhere else (a GPU server, for example), change the URL on t
 | Page | Paper section | What it does |
 |---|---|---|
 | Home | Abstract, Fig. 2 | Product landing page: hero, how it works, one-click samples, recent runs, BibTeX |
-| Studio | S3.2, Eq. 1 | Three-panel workspace: input panel → phone canvas (Predicted / Compare / Pipeline / STR views) → inspector (text symbols, timings, JSON). Roll out to the next step, send to Evaluation |
-| Agent Planner | S3.3, Alg. 1, App. A.2 | Imagined outcome for each candidate action, valid/invalid with confidence, top-2, selected action |
-| Evaluation | S4.2, Table 1 | s_gc, s_ia, s_ar, s_h, compared against the paper's averages; can prefill from a Studio run |
+| Studio | §3.2, Eq. 1 | Three-panel workspace: input panel → phone canvas (Predicted / Compare / Pipeline / STR views) → inspector (text symbols, timings, JSON). Roll out to the next step, send to Evaluation |
+| Agent Planner | §3.3, Alg. 1, App. A.2 | Imagined outcome for each candidate action, valid/invalid with confidence, top-2, selected action |
+| Evaluation | §4.2, Table 1 | s_gc, s_ia, s_ar, s_h, compared against the paper's averages; can prefill from a Studio run |
 | History | — | Every prediction from this session; open any one back in Studio |
 | Benchmarks | Tables 1, 2, 3, 5, 7, 10 | Interactive charts of the reported numbers |
 | Settings | — | API URL, model status (real vs. mock), theme, endpoint list |
