@@ -52,6 +52,26 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 300_000)
   }
 }
 
+/**
+ * Downscale large screenshots in the browser before upload (serverless hosts cap request bodies,
+ * e.g. Vercel 4.5 MB). Small images are sent unchanged.
+ */
+export async function prepareImage(file: File, maxSide = 1400, maxBytes = 1_500_000): Promise<File> {
+  if (file.size <= maxBytes) return file
+  try {
+    const bmp = await createImageBitmap(file)
+    const s = Math.min(1, maxSide / Math.max(bmp.width, bmp.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bmp.width * s)
+    canvas.height = Math.round(bmp.height * s)
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.9))
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file
+  } catch {
+    return file
+  }
+}
+
 const form = (fields: Record<string, string | Blob | boolean>) => {
   const fd = new FormData()
   Object.entries(fields).forEach(([k, v]) => fd.append(k, typeof v === 'boolean' ? String(v) : v))
@@ -61,25 +81,25 @@ const form = (fields: Record<string, string | Blob | boolean>) => {
 export const api = {
   health: () => request<Health>('/api/health', undefined, 8000),
 
-  predict: (image: File, action: string, preserveStaticText = true) =>
+  predict: async (image: File, action: string, preserveStaticText = true) =>
     request<PredictResponse>('/api/predict', {
       method: 'POST',
-      body: form({ image, action, preserve_static_text: preserveStaticText }),
+      body: form({ image: await prepareImage(image), action, preserve_static_text: preserveStaticText }),
     }),
 
-  selectAction: (image: File, goal: string, actions: string[]) =>
+  selectAction: async (image: File, goal: string, actions: string[]) =>
     request<AgentResponse>('/api/agent/select', {
       method: 'POST',
-      body: form({ image, goal, actions: JSON.stringify(actions) }),
+      body: form({ image: await prepareImage(image), goal, actions: JSON.stringify(actions) }),
     }),
 
-  evaluate: (p: { current: File; generated: File; groundTruth: File; action: string; goal: string; nextAction: string }) =>
+  evaluate: async (p: { current: File; generated: File; groundTruth: File; action: string; goal: string; nextAction: string }) =>
     request<EvaluateResponse>('/api/evaluate', {
       method: 'POST',
       body: form({
-        current: p.current,
-        generated: p.generated,
-        ground_truth: p.groundTruth,
+        current: await prepareImage(p.current, 1400, 1_000_000),
+        generated: await prepareImage(p.generated, 1400, 1_000_000),
+        ground_truth: await prepareImage(p.groundTruth, 1400, 1_000_000),
         action: p.action,
         goal: p.goal,
         next_action: p.nextAction,

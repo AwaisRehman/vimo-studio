@@ -39,7 +39,7 @@ def health():
         "status": "ok",
         "version": app.version,
         "mode": {
-            "ocr": "rapidocr (PaddleOCR ONNX)" if P._OCR else "unavailable",
+            "ocr": P.OCR_NAME,
             "str_predictor": "mock (identity)",
             "llm": "mock (heuristic)",
             "gui_consistency": "mock (pixel cosine)",

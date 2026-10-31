@@ -18,22 +18,32 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 import re
+import sys
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-try:
-    from rapidocr_onnxruntime import RapidOCR  # PaddleOCR models via ONNX
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_BACKEND_DIR / "vendor"))  # vendored rapidocr_onnxruntime (uses headless OpenCV)
 
-    _OCR = RapidOCR()
-except Exception:  # pragma: no cover
-    _OCR = None
+# VIMO_OCR=off forces the OCR-free fallback (OpenCV text-region detector: boxes only, no recognised text).
+_OCR = None
+if os.getenv("VIMO_OCR", "auto") != "off":
+    try:
+        from rapidocr_onnxruntime import RapidOCR  # PaddleOCR models via ONNX
 
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        _OCR = RapidOCR()
+    except Exception:  # pragma: no cover
+        _OCR = None
+OCR_NAME = "rapidocr (PaddleOCR ONNX)" if _OCR else "opencv text-region detector (no recognition)"
+
+FONT_PATH = str(Path(__file__).resolve().parent / "fonts" / "DejaVuSans.ttf")  # bundled; works on any host
 MAX_SIDE = 1400
 
 
@@ -48,8 +58,9 @@ def load_image(data: bytes) -> np.ndarray:
 
 
 def to_data_uri(bgr: np.ndarray) -> str:
-    ok, buf = cv2.imencode(".png", bgr)
-    return "data:image/png;base64," + base64.b64encode(buf.tobytes()).decode()
+    # JPEG keeps a 5-image response well under serverless body limits (Vercel: 4.5 MB)
+    ok, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    return "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()
 
 
 def _font(size: int) -> ImageFont.FreeTypeFont:
@@ -77,9 +88,31 @@ class Box:
 
 
 # ----------------------------------------------------------------------------- 1. OCR + STR
+def _detect_text_regions(img: np.ndarray) -> list[Box]:
+    """OCR-free fallback: morphological text-region detection (locations only)."""
+    H, W = img.shape[:2]
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+    _, bw = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    joined = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (max(9, W // 60), 3)))
+    contours, _ = cv2.findContours(joined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    boxes = []
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        if h < 10 or h > H * 0.08 or w < 12 or w > W * 0.9:
+            continue
+        if w / h < 1.0:  # text lines are wider than tall
+            continue
+        fill = (bw[y : y + h, x : x + w] > 0).mean()
+        if not 0.12 < fill < 0.75:  # skip solid shapes and empty outlines
+            continue
+        boxes.append(Box(x, y, w, h, "", 0.5))
+    return boxes
+
+
 def detect_text(img: np.ndarray) -> list[Box]:
     if _OCR is None:
-        return []
+        return _detect_text_regions(img)
     result, _ = _OCR(img)
     boxes = []
     for pts, text, score in result or []:

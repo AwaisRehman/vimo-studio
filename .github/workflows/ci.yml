@@ -22,11 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12", cache: pip, cache-dependency-path: backend/requirements.txt }
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: backend/requirements*.txt }
       - run: pip install -r requirements.txt httpx
-      - name: Smoke test API
+      - name: Smoke test API (with OCR, then lite mode as on Vercel)
         run: |
-          python - <<'PY'
+          for MODE in auto off; do VIMO_OCR=$MODE python - <<'PY'
           from fastapi.testclient import TestClient
           from app.main import app
           c = TestClient(app)
@@ -34,5 +34,6 @@ jobs:
           with open("../frontend/public/samples/clock.png", "rb") as f:
               r = c.post("/api/predict", files={"image": f}, data={"action": "Click the + button"})
           assert r.status_code == 200, r.text
-          print("ok:", len(r.json()["symbols"]), "symbols")
+          print("ok:", c.get("/api/health").json()["mode"]["ocr"], len(r.json()["symbols"]), "symbols")
           PY
+          done

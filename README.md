@@ -79,7 +79,7 @@ Then change the strings in `/api/health` → `mode`. The UI's **MOCK** badge dis
 | Part | Host | Config |
 |---|---|---|
 | Frontend | Vercel (free Hobby) | `frontend/vercel.json`, root dir `frontend` |
-| Backend (CPU / mock) | Render (free web service) | `render.yaml` Blueprint |
+| Backend (CPU / mock) | Vercel (free, Python/FastAPI, root dir `backend`) | `backend/vercel.json` + `backend/api/index.py` · alt: `render.yaml` |
 | Backend (real model) | Your L40 GPU server, Docker + Cloudflare Tunnel | `backend/Dockerfile.gpu` |
 | CI | GitHub Actions | `.github/workflows/ci.yml` |
 

@@ -1,7 +1,14 @@
+# One dependency list for every host (local, Render, Vercel, Docker).
+# OCR = vendored rapidocr_onnxruntime (vendor/) running PaddleOCR models on onnxruntime,
+# using headless OpenCV so it fits serverless limits and needs no GUI system libraries.
 fastapi
 uvicorn[standard]
 python-multipart
 opencv-python-headless
 pillow
 numpy
-rapidocr-onnxruntime
+onnxruntime
+pyclipper
+shapely
+pyyaml
+six
